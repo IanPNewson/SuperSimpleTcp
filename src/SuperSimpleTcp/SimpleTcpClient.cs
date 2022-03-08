@@ -280,7 +280,15 @@ namespace SuperSimpleTcp
                  }
              });
 
-            IAsyncResult ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
+            IAsyncResult ar = null;
+            try
+            {
+                ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
+            }
+            catch(ObjectDisposedException ex)
+            {
+                return;
+            }
             WaitHandle wh = ar.AsyncWaitHandle;
 
             try
@@ -291,7 +299,15 @@ namespace SuperSimpleTcp
                     throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
                 }
 
-                _client.EndConnect(ar);
+                try
+                {
+                    _client.EndConnect(ar);
+                }
+                catch (ObjectDisposedException ex)
+                {
+
+                    return;
+                }
                 _networkStream = _client.GetStream();
                 _networkStream.ReadTimeout = _settings.ReadTimeoutMs;
 
@@ -312,7 +328,7 @@ namespace SuperSimpleTcp
 
                 if (_keepalive.EnableTcpKeepAlives) EnableKeepalives();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 throw;
             }
